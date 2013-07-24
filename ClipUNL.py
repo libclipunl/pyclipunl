@@ -7,35 +7,68 @@ import cookielib
 SERVER = "https://clip.unl.pt"
 LOGIN = SERVER + "/utente/eu"
 ALUNO = SERVER + "/utente/eu/aluno"
-ANO_LECTIVO = ALUNO + "/ano_lectivo?aluno=%s"
+ANO_LECTIVO = ALUNO + "/ano_lectivo"
+UNIDADES = ANO_LECTIVO + "/unidades"
 
 class ClipUNL:
-    class ClipUNLPerson:
+
+    class CurricularUnit:
+        def __init__(self, student_id, year):
+            self._load(year)
+
+        def _load(self):
+            pass
+
+    class Person:
         name = ""
         url = ""
         id = ""
-        years = []
+        years = {}
 
         def __init__(self, url, name):
             self.name = name
             self.url = url
             self.id = self._get_id(url)
             self._loadyears()
+            self._loadCUs()
 
         def _get_id(self, url):
             query = urlparse.urlparse(SERVER + url).query
             params = urlparse.parse_qs(query)
             return params["aluno"][0]
 
-        def _loadyears(self):
-            url = ANO_LECTIVO % (self.id,)
-            print "URL: " + url
+        def _loadCU(self, year):
+            data = urllib.urlencode({
+                "aluno": self.id,
+                "ano_lectivo": year
+            })
+            url = UNIDADES + "?" + data
 
-            html = urllib2.urlopen(ANO_LECTIVO % (self.id,)).read()
+            html = urllib2.urlopen(url).read()
             soup = BeautifulSoup(html)
 
             all_tables = soup.findAll("table", {"cellpadding" : "3"})
-            self.years = []
+            uc_table = all_tables[2]
+
+            all_anchors = uc_table.findAll("a")
+            for anchor in all_anchors:
+                print anchor.text
+
+
+        def _loadCUs(self):
+            for year in self.years:
+                self._loadCU(year)
+
+        def _loadyears(self):
+            data = urllib.urlencode({"aluno" : self.id})
+            url = ANO_LECTIVO + "?" + data
+            print "URL: " + url
+
+            html = urllib2.urlopen(url).read()
+            soup = BeautifulSoup(html)
+
+            all_tables = soup.findAll("table", {"cellpadding" : "3"})
+            self.years = {}
             if len(all_tables) == 2:
                 # We got ourselves the list of all years
                 # (if there is more than one year)
@@ -45,7 +78,8 @@ class ClipUNL:
                     href = year["href"]
                     query = urlparse.urlparse(SERVER + href).query
                     params = urlparse.parse_qs(query)
-                    self.years.append(params["ano_lectivo"][0])
+                    year = params["ano_lectivo"][0]
+                    self.years[year] = []
 
             else:
                 # There's only one year. Discover which year is it
@@ -53,8 +87,7 @@ class ClipUNL:
                 years_anchors = years_table.findAll("a")
                 year_text = years_anchors[0].text
                 year = int(year_text.split("/")[0]) + 1
-                self.years = [unicode(year)]
-
+                self.years[unicode(year)] = []
 
     logged_in = False
     error = False
@@ -103,7 +136,7 @@ class ClipUNL:
 
         for anchor in anchors:
             self.alunos.append(
-                self.ClipUNLPerson(anchor["href"], anchor.text)
+                self.Person(anchor["href"], anchor.text)
             )
 
         return True
