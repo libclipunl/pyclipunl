@@ -42,17 +42,26 @@ class ClipUNL:
             pass
 
     class Person:
-        name = ""
-        url = ""
-        id = ""
-        years = {}
+        _name = None
+        _url = None
+        _id = None
+        _years = None
 
         def __init__(self, url, name):
-            self.name = name
-            self.url = url
-            self.id = self._get_id(url)
-            self._loadyears()
-            self._loadCUs()
+            self._name = name
+            self._url = url
+            self._id = self._get_id(url)
+            #self._loadyears()
+            #self._loadCUs()
+
+        def get_name(self):
+            return self._name
+        
+        def get_years(self):
+            if self._years == None:
+                self._years = self._get_years()
+
+            return self._years
 
         def _get_id(self, url):
             query = urlparse.urlparse(SERVER + url).query
@@ -61,7 +70,7 @@ class ClipUNL:
 
         def _loadCU(self, year):
             data = urllib.urlencode({
-                "aluno": self.id,
+                "aluno": self._id,
                 "ano_lectivo": year
             })
             url = UNIDADES + "?" + data
@@ -75,19 +84,14 @@ class ClipUNL:
             for anchor in all_anchors:
                 print anchor.text
 
-
-        def _loadCUs(self):
-            for year in self.years:
-                self._loadCU(year)
-
-        def _loadyears(self):
-            data = urllib.urlencode({"aluno" : self.id})
+        def _get_years(self):
+            data = urllib.urlencode({"aluno" : self._id})
             url = ANO_LECTIVO + "?" + data
 
             soup = get_soup(url)
 
             all_tables = soup.findAll("table", {"cellpadding" : "3"})
-            self.years = {}
+            years = {}
             if len(all_tables) == 2:
                 # We got ourselves the list of all years
                 # (if there is more than one year)
@@ -98,7 +102,7 @@ class ClipUNL:
                     query = urlparse.urlparse(SERVER + href).query
                     params = urlparse.parse_qs(query)
                     year = params["ano_lectivo"][0]
-                    self.years[year] = []
+                    years[year] = []
 
             else:
                 # There's only one year. Discover which year is it
@@ -106,7 +110,9 @@ class ClipUNL:
                 years_anchors = years_table.findAll("a")
                 year_text = years_anchors[0].text
                 year = int(year_text.split("/")[0]) + 1
-                self.years[unicode(year)] = []
+                years = { unicode(year) : [] }
+
+            return years
 
     _logged_in = None
     _full_name = None
@@ -136,8 +142,6 @@ class ClipUNL:
             self._alunos = self._get_alunos()
 
         return self._alunos
-
-        
 
     def _get_full_name(self, soup):
         all_strong = soup.findAll("strong")
