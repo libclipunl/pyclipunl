@@ -12,6 +12,6 @@ programatically access their data""",
         author_email='david.nonamedguy@gmail.com',
         url="https://github.com/libclipunl/pyclipunl",
         py_modules=['ClipUNL'],
-        requires=['BeautifulSoup (==3.0)'],
+        requires=['BeautifulSoup (==4.0)'],
         license='MIT'
     )

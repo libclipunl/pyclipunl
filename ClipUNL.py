@@ -21,7 +21,7 @@ Copyright (c) 2013 David Miguel de Araújo Serrano
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
 """
-from BeautifulSoup import BeautifulSoup
+from bs4 import BeautifulSoup
 import urllib
 import urllib2
 import urlparse
@@ -270,9 +270,9 @@ class ClipUNL:
 
         def _get_url_data(self, url):
             """Extracts data from a given URL"""
-            query = urlparse.urlparse(SERVER + url).query
+            query = urlparse.urlparse(unicode(SERVER + url, "utf-8")).query
             params = urlparse.parse_qs(query)
-
+            
             self._id = params[PARAMS["unit"]][0]
             self._year = params[PARAMS["year"]][0]
             self._period = params[PARAMS["period"]][0]
