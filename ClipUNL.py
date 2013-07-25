@@ -1,4 +1,26 @@
 # coding=utf-8
+"""
+ClipUNL python scrapper library
+Copyright (c) 2013 David Miguel de Araújo Serrano
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+"""
 from BeautifulSoup import BeautifulSoup
 import urllib
 import urllib2
@@ -14,8 +36,8 @@ DOCUMENTOS = UNIDADES + "/unidade_curricular/actividade/documentos"
 
 ENCODING = "iso-8859-1"
 
-REQ_COUNT = 0
-URL_DEBUG = False
+#REQ_COUNT = 0
+#URL_DEBUG = False
 
 PARAMS = {
     "unit": unicode("unidade", ENCODING),
@@ -39,18 +61,41 @@ DOC_TYPES = {
 }
 
 class ClipUNLException(Exception):
+    """
+    A ClipUNL exception. Every exception raised by ClipUNL
+    are direct subclasses of this class
+    """
     pass
 
 class NotLoggedIn(ClipUNLException):
+    """
+    This exception is raised whenever an operation fails
+    and login is required
+    """
     pass
 
 class InexistentYear(ClipUNLException):
-    pass
+    """
+    Raised when there's no data for a specified year
+    """
+    def __init__(self, year):
+        ClipUNLException.__init__(self)
+        self.value = year
+
+    def __str__(self):
+        return repr(self.year)
 
 class PageChanged(ClipUNLException):
+    """
+    Raised when the CLIP UNL webpage layout gets changed
+    """
     pass
 
 class InvalidDocumentType(ClipUNLException):
+    """
+    Raised when asking for documents which type is not
+    listed on ClipUNL.DOC_TYPES
+    """
     def __init__(self, doctype):
         ClipUNLException.__init__(self)
         self.value = doctype
@@ -59,10 +104,13 @@ class InvalidDocumentType(ClipUNLException):
         return repr(self.value)
 
 def _get_soup(url, data=None):
-    if URL_DEBUG:
-        global REQ_COUNT
-        REQ_COUNT = REQ_COUNT + 1
-        print "[%02d] URL: %s%s " % (REQ_COUNT, SERVER, url)
+    """
+    Give an URL, we'll return you a soup
+    """
+    #if URL_DEBUG:
+    #    global REQ_COUNT
+    #    REQ_COUNT = REQ_COUNT + 1
+    #    print "[%02d] URL: %s%s " % (REQ_COUNT, SERVER, url)
 
     data_ = None
     if data != None:
@@ -74,11 +122,20 @@ def _get_soup(url, data=None):
     return soup
 
 def _get_qs_param(url, param):
+    """
+    Extract parameter from the url's query string
+    """
     query = urlparse.urlparse(SERVER + url).query
     params = urlparse.parse_qs(query)
     return params[param][0]
 
 def _get_full_name(soup):
+    """
+    Given a soup originated from a CLIP UNL page, extract
+    the user's full name. If the user is not logged in
+    (and therefore impossible to get his/her name),
+    this function returns False
+    """
     all_strong = soup.findAll("strong")
     if (len(all_strong) == 1):
         return all_strong[0].text
@@ -86,8 +143,18 @@ def _get_full_name(soup):
         return False
 
 class ClipUNL:
+    """
+    ClipUNL library.
+
+    All the magic happens here.
+    The first thing you must do before calling any other method
+    is the login method.
+    """
 
     class Document:
+        """
+        Describes a ClipUNL document.
+        """
         _c_unit = None
         _name = None
         _url = None
@@ -113,6 +180,10 @@ class ClipUNL:
                 (self._name, self._teacher, self._date)
 
         def get_curricular_unit(self):
+            """
+            Returns the curricular unit (a ClipUNL.CurricularUnit
+            object) associated with this document.
+            """
             return self._c_unit
 
         def get_name(self):
