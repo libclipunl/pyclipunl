@@ -2,7 +2,7 @@ from ClipUNL import ClipUNL
 from ClipUNL import DOC_TYPES
 import json
 
-f = open("login.json")
+f = open("config.json")
 data = json.load(f)
 f.close()
 

@@ -91,6 +91,9 @@ class ClipUNL:
             self._size = size
             self._teacher = teacher
 
+        def get_url(self):
+            return self._url
+
         def __str__(self):
             return "%s (by %s, created at %s)" % (self._name, self._teacher, self._date)
 

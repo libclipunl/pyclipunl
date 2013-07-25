@@ -1,5 +1,5 @@
 #custom
-login.json
+config.json
 *.swp
 ##GitHub
 *.py[cod]
