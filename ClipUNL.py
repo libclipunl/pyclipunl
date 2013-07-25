@@ -91,11 +91,14 @@ class ClipUNL:
             self._size = size
             self._teacher = teacher
 
+        def __str__(self):
+            return unicode(self)
+
+        def __unicode__(self):
+            return "%s (by %s, created at %s)" % (self._name, self._teacher, self._date)
+
         def get_url(self):
             return self._url
-
-        def __str__(self):
-            return "%s (by %s, created at %s)" % (self._name, self._teacher, self._date)
 
     class CurricularUnit:
         _student = None
@@ -114,12 +117,21 @@ class ClipUNL:
             self._name = name
             self._url = url
             self._get_url_data(url)
+
+        def __str__(self):
+            return unicode(self)
+
+        def __unicode__(self):
+            return "%s (%s)" % (self.get_name(), self.get_year())
         
         def get_student(self):
             return self._student
 
         def get_name(self):
             return self._name
+
+        def get_year(self):
+            return self._year
         
         # FIXME: Cache document requests
         def get_documents(self, doctype=None):
@@ -209,6 +221,9 @@ class ClipUNL:
 
         def get_id(self):
             return self._id
+
+        def get_url(self):
+            return self._url
 
         def _get_id(self, url):
             query = urlparse.urlparse(SERVER + url).query
@@ -336,4 +351,3 @@ class ClipUNL:
             )
 
         return alunos
-

@@ -25,7 +25,7 @@ if clip.is_logged_in():
             year_cus = person.get_year(year)
             print "  %s Curricular Units:" % (year,)
             for cu in year_cus:
-                print "    %s" % (cu.get_name())
+                print "    %s" % (cu,)
                 for doctype in DOC_TYPES.keys():
                     docs = cu.get_documents(doctype)
                     n = len(docs)
