@@ -5,10 +5,32 @@ import urlparse
 import cookielib
 
 SERVER = "https://clip.unl.pt"
-LOGIN = SERVER + "/utente/eu"
-ALUNO = SERVER + "/utente/eu/aluno"
+LOGIN = "/utente/eu"
+ALUNO = "/utente/eu/aluno"
 ANO_LECTIVO = ALUNO + "/ano_lectivo"
 UNIDADES = ANO_LECTIVO + "/unidades"
+ENCODING = "iso-8859-1"
+
+class ClipUNLException(Exception):
+    pass
+
+class NotLoggedIn(ClipUNLException):
+    pass
+
+class PageChanged(ClipUNLException):
+    pass
+
+def get_soup(url, data=None):
+    print "URL: " + SERVER + url
+
+    data_ = None
+    if data != None:
+        data_ = urllib.urlencode(data)
+
+    html = urllib2.urlopen(SERVER + url, data_).read().decode(ENCODING)
+    soup = BeautifulSoup(html)
+
+    return soup
 
 class ClipUNL:
 
@@ -44,8 +66,7 @@ class ClipUNL:
             })
             url = UNIDADES + "?" + data
 
-            html = urllib2.urlopen(url).read()
-            soup = BeautifulSoup(html)
+            soup = get_soup(url)
 
             all_tables = soup.findAll("table", {"cellpadding" : "3"})
             uc_table = all_tables[2]
@@ -62,10 +83,8 @@ class ClipUNL:
         def _loadyears(self):
             data = urllib.urlencode({"aluno" : self.id})
             url = ANO_LECTIVO + "?" + data
-            print "URL: " + url
 
-            html = urllib2.urlopen(url).read()
-            soup = BeautifulSoup(html)
+            soup = get_soup(url)
 
             all_tables = soup.findAll("table", {"cellpadding" : "3"})
             self.years = {}
@@ -89,18 +108,36 @@ class ClipUNL:
                 year = int(year_text.split("/")[0]) + 1
                 self.years[unicode(year)] = []
 
-    logged_in = False
-    error = False
-    full_name = ""
+    _logged_in = None
+    _full_name = None
 
-    alunos = []
+    _alunos = None
 
-    def __init__(self, user, password):
+    def __init__(self):
         cj = cookielib.CookieJar()
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
         urllib2.install_opener(opener)
 
-        self.logged_in = self._login(user, password)
+    def login(self, user, password):
+        self._alunos = None
+        self.logged_in = self._login(LOGIN, user, password)
+
+    def is_logged_in(self):
+        return self.logged_in
+
+    def get_full_name(self):
+        if self._full_name == None:
+            raise ClipExceptNotLoggedIn()
+
+        return self._full_name
+
+    def get_alunos(self):
+        if self._alunos == None:
+            self._alunos = self._get_alunos()
+
+        return self._alunos
+
+        
 
     def _get_full_name(self, soup):
         all_strong = soup.findAll("strong")
@@ -109,20 +146,22 @@ class ClipUNL:
         else:
             return False
 
-    def _login(self, user, password):
-        data = urllib.urlencode({
+    def _login(self, url, user, password):
+        soup = get_soup(url, {
             "identificador": user,
             "senha": password
         })
 
-        html = urllib2.urlopen(ALUNO, data).read()
-        soup = BeautifulSoup(html)
-
         # Check if it is possible to get a full name
-        self.full_name = self._get_full_name(soup)
-        if (not self.full_name):
+        self._full_name = self._get_full_name(soup)
+        if (not self._full_name):
             return False
 
+        return True
+
+    def _get_alunos(self):
+        soup = get_soup(ALUNO)
+       
         all_tables = soup.body.findAll("table", {"cellpadding": "3"})
         if len(all_tables) != 1:
             self.error = True
@@ -132,12 +171,13 @@ class ClipUNL:
 
         if len(anchors) <= 0:
             self.error = True
-            return False
-
+            return None
+        
+        alunos = []
         for anchor in anchors:
-            self.alunos.append(
+            alunos.append(
                 self.Person(anchor["href"], anchor.text)
             )
 
-        return True
+        return alunos
 
