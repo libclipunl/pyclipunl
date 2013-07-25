@@ -1,5 +1,6 @@
 #custom
-test.py
+login.json
+*.swp
 ##GitHub
 *.py[cod]
 

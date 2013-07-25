@@ -17,6 +17,9 @@ class ClipUNLException(Exception):
 class NotLoggedIn(ClipUNLException):
     pass
 
+class InexistentYear(ClipUNLException):
+    pass
+
 class PageChanged(ClipUNLException):
     pass
 
@@ -35,8 +38,20 @@ def get_soup(url, data=None):
 class ClipUNL:
 
     class CurricularUnit:
-        def __init__(self, student_id, year):
-            self._load(year)
+        _student = None
+        _url = None
+        _name = None
+
+        def __init__(self, student, name, url):
+            self._student = student
+            self._name = name
+            self._url = url
+
+        def get_student(self):
+            return self._student
+
+        def get_name(self):
+            return self._name
 
         def _load(self):
             pass
@@ -61,14 +76,25 @@ class ClipUNL:
             if self._years == None:
                 self._years = self._get_years()
 
-            return self._years
+            return self._years.keys()
+
+        def get_year(self, year):
+            if self._years == None:
+                self._years = self._get_years()
+            
+            year_data = self._years[year]
+            if len(year_data) == 0:
+                year_data = self._get_CUs(year)
+
+            self._years[year] = year_data
+            return year_data
 
         def _get_id(self, url):
             query = urlparse.urlparse(SERVER + url).query
             params = urlparse.parse_qs(query)
             return params["aluno"][0]
 
-        def _loadCU(self, year):
+        def _get_CUs(self, year):
             data = urllib.urlencode({
                 "aluno": self._id,
                 "ano_lectivo": year
@@ -81,8 +107,13 @@ class ClipUNL:
             uc_table = all_tables[2]
 
             all_anchors = uc_table.findAll("a")
+            cus = []
             for anchor in all_anchors:
-                print anchor.text
+                cu_name = anchor.text
+                href = anchor["href"]
+                cus.append(ClipUNL.CurricularUnit(self, anchor.text, anchor["href"]))
+
+            return cus
 
         def _get_years(self):
             data = urllib.urlencode({"aluno" : self._id})
