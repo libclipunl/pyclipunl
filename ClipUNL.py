@@ -187,18 +187,30 @@ class ClipUNL:
             return self._c_unit
 
         def get_name(self):
+            """Returns the document's name"""
             return self._name
 
         def get_url(self):
+            """Returns the document's url"""
             return self._url
 
         def get_size(self):
+            """Returns the string describing the document's size"""
             return self._size
 
         def get_teacher(self):
+            """
+            Returns the name of the teacher who uploaded
+            the document
+            """
             return self._teacher
 
     class CurricularUnit:
+        """
+        A class describing a curricular unit (more commonly known as a
+        class, or subject)
+        """
+        
         _student = None
         _url = None
         _name = None
@@ -223,16 +235,28 @@ class ClipUNL:
             return "%s (%s)" % (self.get_name(), self.get_year())
         
         def get_student(self):
+            """Returns the student who attends this class"""
             return self._student
 
         def get_name(self):
+            """Returns the curricular unit's name"""
             return self._name
 
         def get_year(self):
+            """Returns the curricular unit's year (as in, edition)"""
             return self._year
         
         # FIXME: Cache document requests
         def get_documents(self, doctype=None):
+            """
+            Returns the curricular unit's associated documents.
+            If doctype isn't specified, then all documents (of all types)
+            will be returned.
+
+            Valid document types are listed on ClipUNL.DOC_TYPES.keys().
+            
+            An array of ClipUNL.ClipUNL.Document objects will be returned.
+            """
             ret = []
             assert len(ret) == 0
             if doctype is None:
@@ -245,6 +269,7 @@ class ClipUNL:
             return ret
 
         def _get_url_data(self, url):
+            """Extracts data from a given URL"""
             query = urlparse.urlparse(SERVER + url).query
             params = urlparse.parse_qs(query)
 
@@ -254,6 +279,10 @@ class ClipUNL:
             self._period_type = params[PARAMS["period_type"]][0]
 
         def _get_documents(self, doctype):
+            """
+            Retrieve documents of a specified doctype.
+            Please don't use this method. Use get_documents() instead.
+            """
             docs = []
 
             data = urllib.urlencode({
@@ -288,29 +317,56 @@ class ClipUNL:
             return docs
            
     class Person:
-        _name = None
+        """
+        A class describing a Person.
+        On Clip UNL a user can be many persons.
+        """
+        _role = None
         _url = None
         _id = None
         _years = None
 
-        def __init__(self, url, name):
-            self._name = name
+        def __init__(self, url, role):
+            self._role = role
             self._url = url
             self._id = _get_qs_param(url, PARAMS["student"])
 
-        def get_name(self):
-            return self._name
+        def __str__(self):
+            return unicode(self)
+
+        def __unicode__(self):
+            return "%s (id: %s)" % (self.get_role(), self.get_id())
+
+        def get_role(self):
+            """
+            Returns the person's role. 
+            """
+            return self._role
         
         def get_years(self):
+            """
+            Returns an array containing all the registered
+            years for this person.
+            """
             if self._years is None:
                 self._years = self._get_years()
 
             return self._years.keys()
 
         def get_year(self, year):
+            """
+            Returns a list of CurricularUnit objects, that
+            were lectured during a specified year.
+
+            If there aren't curricular units for a specified
+            year, the InexistentYear exception will be raised.
+            """
             if self._years is None:
                 self._years = self._get_years()
             
+            if not year in self._years.keys():
+                raise InexistentYear(year)
+
             year_data = self._years[year]
             if len(year_data) == 0:
                 year_data = self._get_curricular_units(year)
@@ -319,13 +375,19 @@ class ClipUNL:
             return year_data
 
         def get_id(self):
+            """Returns the person's id"""
             return self._id
 
         def get_url(self):
+            """Returns the person's Clip UNL URL"""
             return self._url
 
 
         def _get_curricular_units(self, year):
+            """
+            Get's a list of curricular units for a specified year.
+            Please don't use this method. Use get_year() instead.
+            """
             data = urllib.urlencode({
                 PARAMS["student"]: self._id,
                 PARAMS["year"]: year
@@ -348,6 +410,10 @@ class ClipUNL:
             return cus
 
         def _get_years(self):
+            """
+            Returns a list of all the years this person is registered to.
+            Please don't use this method. Use get_years instead.
+            """
             data = urllib.urlencode({PARAMS["student"] : self._id})
             url = ANO_LECTIVO + "?" + data
 
@@ -380,7 +446,7 @@ class ClipUNL:
     _logged_in = None
     _full_name = None
 
-    _alunos = None
+    _people = None
 
     def __init__(self):
         cjar = cookielib.CookieJar()
@@ -388,25 +454,56 @@ class ClipUNL:
         urllib2.install_opener(opener)
 
     def login(self, user, password):
-        self._alunos = None
+        """
+        Logs into CLIP.
+
+        This must be the first call to be made, before any other
+        method call on an instance of a ClipUNL class.
+
+        The NotLoggedIn exception will be raised if other
+        methods are used, whithout loggin in first.
+
+        Returns True is the login is successful, False otherwise.
+        """
+        self._people = None
         self._logged_in = self._login(LOGIN, user, password)
 
     def is_logged_in(self):
+        """
+        Checks if the user has logged in successfully.
+        """
         return self._logged_in
 
     def get_full_name(self):
+        """
+        Returns the users full name
+        """
         if self._full_name is None:
             raise NotLoggedIn()
 
         return self._full_name
 
-    def get_alunos(self):
-        if self._alunos is None:
-            self._alunos = self._get_alunos()
+    def get_people(self):
+        """
+        Returns the list of people this user represents.
 
-        return self._alunos
+        A user can be a masters student, while he/she
+        has completed his/her baccalaureate.
+
+        There's only support for students at the moment.
+        """
+        if self._people is None:
+            self._people = self._get_people()
+
+        return self._people
 
     def _login(self, url, user, password):
+        """
+        Does the actual login on the system, with a provided
+        user and password.
+
+        Please don't use this method. Use login instead.
+        """
         soup = _get_soup(url, {
             "identificador": user,
             "senha": password
@@ -419,7 +516,11 @@ class ClipUNL:
 
         return True
 
-    def _get_alunos(self):
+    def _get_people(self):
+        """
+        Returns a list of people represented by this user.
+        Please don't use this method. Use get_people instead.
+        """
         soup = _get_soup(ALUNO)
        
         all_tables = soup.body.findAll("table", {"cellpadding": "3"})
@@ -431,10 +532,10 @@ class ClipUNL:
         if len(anchors) <= 0:
             raise PageChanged()
         
-        alunos = []
+        people = []
         for anchor in anchors:
-            alunos.append(
+            people.append(
                 self.Person(anchor["href"], anchor.text)
             )
 
-        return alunos
+        return people
