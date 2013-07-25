@@ -1,7 +1,9 @@
 #custom
+MANIFEST
 config.json
 *.swp
-##GitHub
+
+#GitHub
 *.py[cod]
 
 # C extensions
