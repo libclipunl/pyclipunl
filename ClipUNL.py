@@ -4,7 +4,6 @@ import urllib
 import urllib2
 import urlparse
 import cookielib
-import sys
 
 SERVER = "https://clip.unl.pt"
 LOGIN = "/utente/eu"
@@ -53,12 +52,13 @@ class PageChanged(ClipUNLException):
 
 class InvalidDocumentType(ClipUNLException):
     def __init__(self, doctype):
+        ClipUNLException.__init__(self)
         self.value = doctype
 
     def __str__(self):
         return repr(self.value)
 
-def get_soup(url, data=None):
+def _get_soup(url, data=None):
     if URL_DEBUG:
         global REQ_COUNT
         REQ_COUNT = REQ_COUNT + 1
@@ -73,18 +73,32 @@ def get_soup(url, data=None):
 
     return soup
 
+def _get_qs_param(url, param):
+    query = urlparse.urlparse(SERVER + url).query
+    params = urlparse.parse_qs(query)
+    return params[param][0]
+
+def _get_full_name(soup):
+    all_strong = soup.findAll("strong")
+    if (len(all_strong) == 1):
+        return all_strong[0].text
+    else:
+        return False
+
 class ClipUNL:
 
     class Document:
-        _cu = None
+        _c_unit = None
         _name = None
         _url = None
         _date = None
         _size = None
         _teacher = None
 
-        def __init__(self, cu, name, url, date, size, teacher):
-            self._cu = cu
+        def __init__(self, c_unit,
+                name, url, date, size, teacher):
+
+            self._cunit = c_unit
             self._name = name
             self._url = url
             self._date = date
@@ -95,10 +109,23 @@ class ClipUNL:
             return unicode(self)
 
         def __unicode__(self):
-            return "%s (by %s, created at %s)" % (self._name, self._teacher, self._date)
+            return "%s (by %s, created at %s)" % \
+                (self._name, self._teacher, self._date)
+
+        def get_curricular_unit(self):
+            return self._c_unit
+
+        def get_name(self):
+            return self._name
 
         def get_url(self):
             return self._url
+
+        def get_size(self):
+            return self._size
+
+        def get_teacher(self):
+            return self._teacher
 
     class CurricularUnit:
         _student = None
@@ -167,10 +194,11 @@ class ClipUNL:
                 PARAMS["student"].encode(ENCODING): self._student.get_id()
             })
             url = DOCUMENTOS + "?" + data
-            soup = get_soup(url)
+            soup = _get_soup(url)
             
             # FIXME: find better way to get all table rows
-            all_imgs = soup.findAll("img", {"src" : "/imagem/geral/download.gif"})
+            all_imgs = soup.findAll("img",
+                    {"src" : "/imagem/geral/download.gif"})
             for img in all_imgs:
                 anchor = img.parent.parent
 
@@ -197,7 +225,7 @@ class ClipUNL:
         def __init__(self, url, name):
             self._name = name
             self._url = url
-            self._id = self._get_id(url)
+            self._id = _get_qs_param(url, PARAMS["student"])
 
         def get_name(self):
             return self._name
@@ -214,7 +242,7 @@ class ClipUNL:
             
             year_data = self._years[year]
             if len(year_data) == 0:
-                year_data = self._get_CUs(year)
+                year_data = self._get_curricular_units(year)
 
             self._years[year] = year_data
             return year_data
@@ -225,19 +253,15 @@ class ClipUNL:
         def get_url(self):
             return self._url
 
-        def _get_id(self, url):
-            query = urlparse.urlparse(SERVER + url).query
-            params = urlparse.parse_qs(query)
-            return params[PARAMS["student"]][0]
 
-        def _get_CUs(self, year):
+        def _get_curricular_units(self, year):
             data = urllib.urlencode({
                 PARAMS["student"]: self._id,
                 PARAMS["year"]: year
             })
             url = UNIDADES + "?" + data
 
-            soup = get_soup(url)
+            soup = _get_soup(url)
 
             all_tables = soup.findAll("table", {"cellpadding" : "3"})
             uc_table = all_tables[2]
@@ -247,7 +271,8 @@ class ClipUNL:
             for anchor in all_anchors:
                 cu_name = anchor.text
                 href = anchor["href"]
-                cus.append(ClipUNL.CurricularUnit(self, anchor.text, anchor["href"]))
+                cus.append(ClipUNL.CurricularUnit(self,
+                    cu_name, href))
 
             return cus
 
@@ -255,7 +280,7 @@ class ClipUNL:
             data = urllib.urlencode({PARAMS["student"] : self._id})
             url = ANO_LECTIVO + "?" + data
 
-            soup = get_soup(url)
+            soup = _get_soup(url)
 
             all_tables = soup.findAll("table", {"cellpadding" : "3"})
             years = {}
@@ -287,20 +312,20 @@ class ClipUNL:
     _alunos = None
 
     def __init__(self):
-        cj = cookielib.CookieJar()
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+        cjar = cookielib.CookieJar()
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cjar))
         urllib2.install_opener(opener)
 
     def login(self, user, password):
         self._alunos = None
-        self.logged_in = self._login(LOGIN, user, password)
+        self._logged_in = self._login(LOGIN, user, password)
 
     def is_logged_in(self):
-        return self.logged_in
+        return self._logged_in
 
     def get_full_name(self):
         if self._full_name is None:
-            raise ClipExceptNotLoggedIn()
+            raise NotLoggedIn()
 
         return self._full_name
 
@@ -310,39 +335,30 @@ class ClipUNL:
 
         return self._alunos
 
-    def _get_full_name(self, soup):
-        all_strong = soup.findAll("strong")
-        if (len(all_strong) == 1):
-            return all_strong[0].text
-        else:
-            return False
-
     def _login(self, url, user, password):
-        soup = get_soup(url, {
+        soup = _get_soup(url, {
             "identificador": user,
             "senha": password
         })
 
         # Check if it is possible to get a full name
-        self._full_name = self._get_full_name(soup)
+        self._full_name = _get_full_name(soup)
         if (not self._full_name):
             return False
 
         return True
 
     def _get_alunos(self):
-        soup = get_soup(ALUNO)
+        soup = _get_soup(ALUNO)
        
         all_tables = soup.body.findAll("table", {"cellpadding": "3"})
         if len(all_tables) != 1:
-            self.error = True
-            return False
+            raise PageChanged()
 
         anchors = all_tables[0].findAll("a")
 
         if len(anchors) <= 0:
-            self.error = True
-            return None
+            raise PageChanged()
         
         alunos = []
         for anchor in anchors:
