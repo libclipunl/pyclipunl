@@ -1,6 +1,11 @@
+#!/usr/bin/env python2
+
 from ClipUNL import ClipUNL
 from ClipUNL import DOC_TYPES
 import json
+import sys
+import codecs
+sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
 
 f = open("config.json")
 data = json.load(f)
@@ -10,7 +15,7 @@ clip = ClipUNL()
 clip.login(data["login"], data["password"])
 
 if clip.is_logged_in():
-    print "Welcome %s" % (clip.get_full_name(),)
+    print ("Welcome %s") % (clip.get_full_name(),)
     alunos = clip.get_alunos()
     for person in alunos:
         years = person.get_years()
