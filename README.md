@@ -36,3 +36,10 @@ To install this module system-wide, issue as root:
     ./setup.py install
 
 Now you are able to import the ClipUNL module from anywhere.
+
+### Dependencies
+
+The **ClipUNL** module depends on the [BeautifulSoup 4.0](http://www.crummy.com/software/BeautifulSoup/) library.
+Check on your operating system for a BeautifulSoup4 package on their repositories.
+
+    * Arch Linux: python2-beautifulsoup4

@@ -270,7 +270,12 @@ class ClipUNL:
 
         def _get_url_data(self, url):
             """Extracts data from a given URL"""
-            query = urlparse.urlparse(unicode(SERVER + url, "utf-8")).query
+            # FIXME: Really ugly hack. I stopped caring
+            try:
+                query = urlparse.urlparse((SERVER + url)).query
+            except:
+                query = urlparse.urlparse(unicode(SERVER + url, "utf-8")).query
+            
             params = urlparse.parse_qs(query)
             
             self._id = params[PARAMS["unit"]][0]
