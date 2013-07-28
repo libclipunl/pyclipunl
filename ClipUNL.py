@@ -26,13 +26,15 @@ import urllib
 import urllib2
 import urlparse
 import cookielib
+import sys
 
-SERVER = "https://clip.unl.pt"
-LOGIN = "/utente/eu"
-ALUNO = "/utente/eu/aluno"
-ANO_LECTIVO = ALUNO + "/ano_lectivo"
-UNIDADES = ANO_LECTIVO + "/unidades"
-DOCUMENTOS = UNIDADES + "/unidade_curricular/actividade/documentos"
+SERVER = unicode("https://clip.unl.pt")
+LOGIN = unicode("/utente/eu")
+ALUNO = unicode("/utente/eu/aluno")
+ANO_LECTIVO = ALUNO + unicode("/ano_lectivo")
+UNIDADES = ANO_LECTIVO + unicode("/unidades")
+DOCUMENTOS = UNIDADES + \
+        unicode("/unidade_curricular/actividade/documentos")
 
 ENCODING = "iso-8859-1"
 
@@ -116,8 +118,8 @@ def _get_soup(url, data=None):
     if data != None:
         data_ = urllib.urlencode(data)
 
-    html = urllib2.urlopen(SERVER + url, data_).read().decode(ENCODING)
-    soup = BeautifulSoup(html)
+    html = urllib2.urlopen(SERVER + url, data_).read()
+    soup = BeautifulSoup(html, from_encoding = ENCODING)
 
     return soup
 
@@ -127,7 +129,7 @@ def _get_qs_param(url, param):
     """
     query = urlparse.urlparse(SERVER + url).query
     params = urlparse.parse_qs(query)
-    return params[param][0]
+    return unicode(params[param][0])
 
 def _get_full_name(soup):
     """
@@ -138,7 +140,7 @@ def _get_full_name(soup):
     """
     all_strong = soup.findAll("strong")
     if (len(all_strong) == 1):
-        return all_strong[0].text
+        return unicode(all_strong[0].text)
     else:
         return False
 
@@ -226,6 +228,7 @@ class ClipUNL:
             self._student = student
             self._name = name
             self._url = url
+
             self._get_url_data(url)
 
         def __str__(self):
@@ -247,6 +250,7 @@ class ClipUNL:
             return self._year
         
         # FIXME: Cache document requests
+        # FIXME: Check available document types when doctype is None
         def get_documents(self, doctype=None):
             """
             Returns the curricular unit's associated documents.
@@ -258,7 +262,6 @@ class ClipUNL:
             An array of ClipUNL.ClipUNL.Document objects will be returned.
             """
             ret = []
-            assert len(ret) == 0
             if doctype is None:
                 for doctype_ in DOC_TYPES.keys():
                     ret = ret + self._get_documents(doctype_)
@@ -271,17 +274,22 @@ class ClipUNL:
         def _get_url_data(self, url):
             """Extracts data from a given URL"""
             # FIXME: Really ugly hack. I stopped caring
-            try:
-                query = urlparse.urlparse((SERVER + url)).query
-            except:
-                query = urlparse.urlparse(unicode(SERVER + url, "utf-8")).query
-            
+            query = urlparse.urlparse((SERVER + url)).query
+
+            unit = PARAMS["unit"]
+            year = PARAMS["year"]
+            period = PARAMS["period"]
+            period_type = PARAMS["period_type"]
+
             params = urlparse.parse_qs(query)
-            
-            self._id = params[PARAMS["unit"]][0]
-            self._year = params[PARAMS["year"]][0]
-            self._period = params[PARAMS["period"]][0]
-            self._period_type = params[PARAMS["period_type"]][0]
+
+            try:
+                self._id = params[unit][0]
+                self._year = params[year][0]
+                self._period = params[period][0]
+                self._period_type = params[period_type][0]
+            except Exception as e:
+                raise PageChanged
 
         def _get_documents(self, doctype):
             """
@@ -332,6 +340,9 @@ class ClipUNL:
         _years = None
 
         def __init__(self, url, role):
+            assert(isinstance(url, unicode))
+            assert(isinstance(role, unicode))
+
             self._role = role
             self._url = url
             self._id = _get_qs_param(url, PARAMS["student"])
@@ -346,6 +357,7 @@ class ClipUNL:
             """
             Returns the person's role. 
             """
+            assert(isinstance(self._role, unicode))
             return self._role
         
         def get_years(self):
@@ -366,6 +378,7 @@ class ClipUNL:
             If there aren't curricular units for a specified
             year, the InexistentYear exception will be raised.
             """
+            assert(isinstance(year, unicode))
             if self._years is None:
                 self._years = self._get_years()
             
@@ -381,18 +394,21 @@ class ClipUNL:
 
         def get_id(self):
             """Returns the person's id"""
+            assert(isinstance(self._id, unicode))
             return self._id
 
         def get_url(self):
             """Returns the person's Clip UNL URL"""
+            assert(isinstance(self._url, unicode))
             return self._url
-
 
         def _get_curricular_units(self, year):
             """
             Get's a list of curricular units for a specified year.
             Please don't use this method. Use get_year() instead.
             """
+            assert(isinstance(year, unicode))
+
             data = urllib.urlencode({
                 PARAMS["student"]: self._id,
                 PARAMS["year"]: year
@@ -406,9 +422,13 @@ class ClipUNL:
 
             all_anchors = uc_table.findAll("a")
             cus = []
+
             for anchor in all_anchors:
                 cu_name = anchor.text
-                href = anchor["href"]
+
+                # Make sure it is a unicode type
+                href = unicode(anchor.get("href"))
+                
                 cus.append(ClipUNL.CurricularUnit(self,
                     cu_name, href))
 
@@ -509,6 +529,10 @@ class ClipUNL:
 
         Please don't use this method. Use login instead.
         """
+        assert(isinstance(url, unicode))
+        assert(isinstance(user, unicode))
+        assert(isinstance(password, unicode))
+
         soup = _get_soup(url, {
             "identificador": user,
             "senha": password
@@ -539,8 +563,10 @@ class ClipUNL:
         
         people = []
         for anchor in anchors:
-            people.append(
-                self.Person(anchor["href"], anchor.text)
-            )
+            href = unicode(anchor["href"])
+            text = unicode(anchor.text)
+
+            person = self.Person(href, text)
+            people.append(person)
 
         return people
