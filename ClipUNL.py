@@ -193,7 +193,7 @@ class ClipUNL:
 
         def get_url(self):
             """Returns the document's url"""
-            return self._url
+            return SERVER + self._url
 
         def get_size(self):
             """Returns the string describing the document's size"""
