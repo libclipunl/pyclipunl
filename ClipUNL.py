@@ -26,7 +26,6 @@ import urllib
 import urllib2
 import urlparse
 import cookielib
-import sys
 
 SERVER = unicode("https://clip.unl.pt")
 LOGIN = unicode("/utente/eu")
@@ -267,6 +266,8 @@ class ClipUNL:
                     ret = ret + self._get_documents(doctype_)
 
             else:
+                if not doctype in DOC_TYPES.keys():
+                    raise InvalidDocumentType(doctype)
                 ret = self._get_documents(doctype)
             
             return ret
@@ -288,8 +289,8 @@ class ClipUNL:
                 self._year = params[year][0]
                 self._period = params[period][0]
                 self._period_type = params[period_type][0]
-            except Exception as e:
-                raise PageChanged
+            except Exception:
+                raise PageChanged()
 
         def _get_documents(self, doctype):
             """
