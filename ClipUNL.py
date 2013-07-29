@@ -178,7 +178,7 @@ class ClipUNL:
 
         def __unicode__(self):
             return "%s (by %s, created at %s)" % \
-                (self._name, self._teacher, self._date)
+                (self.get_name(), self.get_teacher(), self.get_date())
 
         def get_curricular_unit(self):
             """
@@ -205,6 +205,12 @@ class ClipUNL:
             the document
             """
             return self._teacher
+        
+        def get_date(self):
+            """
+            Returns the creation date of the document
+            """
+            return self._date
 
     class CurricularUnit:
         """
