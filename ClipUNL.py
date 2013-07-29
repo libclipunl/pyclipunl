@@ -159,6 +159,7 @@ class ClipUNL:
         _c_unit = None
         _name = None
         _url = None
+        _doctype = None
         _date = None
         _size = None
         _teacher = None
@@ -369,6 +370,7 @@ class ClipUNL:
                     self,
                     all_td[0].text,
                     anchor["href"],
+                    doctype,
                     all_td[2].text,
                     all_td[3].text,
                     all_td[4].text
