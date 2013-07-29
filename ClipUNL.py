@@ -38,7 +38,7 @@ DOCUMENTOS = UNIDADES + \
 ENCODING = "iso-8859-1"
 
 #REQ_COUNT = 0
-#URL_DEBUG = False
+#URL_DEBUG = True
 
 PARAMS = {
     "unit": unicode("unidade", ENCODING),
@@ -164,11 +164,12 @@ class ClipUNL:
         _teacher = None
 
         def __init__(self, c_unit,
-                name, url, date, size, teacher):
+                name, url, doctype, date, size, teacher):
 
             self._c_unit = c_unit
             self._name = name
             self._url = url
+            self._doctype = doctype
             self._date = date
             self._size = size
             self._teacher = teacher
@@ -194,6 +195,14 @@ class ClipUNL:
         def get_url(self):
             """Returns the document's url"""
             return SERVER + self._url
+
+        def get_doctype(self):
+            """Returns the document's doctype"""
+            return self._doctype
+
+        def get_doctype_desc(self):
+            """Returns the printable document's doctype"""
+            return DOC_TYPES[self.get_doctype()]
 
         def get_size(self):
             """Returns the string describing the document's size"""
@@ -255,7 +264,6 @@ class ClipUNL:
             return self._year
         
         # FIXME: Cache document requests
-        # FIXME: Check available document types when doctype is None
         def get_documents(self, doctype=None):
             """
             Returns the curricular unit's associated documents.
@@ -268,8 +276,10 @@ class ClipUNL:
             """
             ret = []
             if doctype is None:
-                for doctype_ in DOC_TYPES.keys():
-                    ret = ret + self._get_documents(doctype_)
+                doctypes = self.get_doctypes()
+                for (doctype_, count) in doctypes.iteritems():
+                    if count > 0:
+                        ret = ret + self._get_documents(doctype_)
 
             else:
                 if not doctype in DOC_TYPES.keys():
@@ -278,9 +288,39 @@ class ClipUNL:
             
             return ret
 
+        def get_doctypes(self):
+            """
+            Returns a dictonary, on which the keys are the available document
+            types and the values are the count of those documents
+            """
+            data = urllib.urlencode({
+                PARAMS["cu_unit"].encode(ENCODING): self._id,
+                PARAMS["year"].encode(ENCODING): self._year,
+                PARAMS["period"].encode(ENCODING): self._period,
+                PARAMS["period_type"].encode(ENCODING): self._period_type,
+                PARAMS["student"].encode(ENCODING): self._student.get_id()
+            })
+            url = DOCUMENTOS + "?" + data
+            soup = _get_soup(url)
+
+            all_tables = soup.findAll("table", {"cellpadding" : "3"})
+            doc_types_table = all_tables[3]
+            anchors = doc_types_table.findAll("a")
+
+            doctypes = {}
+
+            for anchor in anchors:
+                text = anchor.text
+                number = text[text.find("(")+1:text.find(")")]
+                url = unicode(anchor.get("href"))
+
+                doctype = _get_qs_param(url, PARAMS["doctype"])
+                doctypes[doctype] = int(number)
+
+            return doctypes
+
         def _get_url_data(self, url):
             """Extracts data from a given URL"""
-            # FIXME: Really ugly hack. I stopped caring
             query = urlparse.urlparse((SERVER + url)).query
 
             unit = PARAMS["unit"]

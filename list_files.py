@@ -56,12 +56,13 @@ def main():
                 print "  %s Curricular Units:" % (year,)
                 for c_unit in year_cus:
                     print "    %s" % (c_unit,)
-                    for doctype in DOC_TYPES.keys():
-                        docs = c_unit.get_documents(doctype)
-                        docs_len = len(docs)
-                        if docs_len > 0:
+                    doctypes = c_unit.get_doctypes()
+                    for doctype, count in doctypes.iteritems():
+                        if count > 0:
+                            docs = c_unit.get_documents(doctype)
+                            assert(len(docs) == count)
                             print "      [%s] (%d):" % (DOC_TYPES[doctype],
-                                    docs_len)
+                                    count)
                             for doc in docs:
                                 print "        * %s" % (doc,)
 
