@@ -166,7 +166,7 @@ class ClipUNL:
         def __init__(self, c_unit,
                 name, url, date, size, teacher):
 
-            self._cunit = c_unit
+            self._c_unit = c_unit
             self._name = name
             self._url = url
             self._date = date
