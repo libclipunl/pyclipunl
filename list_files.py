@@ -60,7 +60,6 @@ def main():
                     for doctype, count in doctypes.iteritems():
                         if count > 0:
                             docs = c_unit.get_documents(doctype)
-                            print "ASSERT:", len(docs), count
                             assert(len(docs) == count)
                             print "      [%s] (%d):" % (DOC_TYPES[doctype],
                                     count)

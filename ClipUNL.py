@@ -240,6 +240,7 @@ class ClipUNL:
         _period_type = None
 
         _documents = {}
+        _doctypes = None
 
         def __init__(self, student, name, url):
             self._student = student
@@ -247,6 +248,7 @@ class ClipUNL:
             self._url = url
 
             self._documents = {}
+            self._doctypes = None
 
             self._get_url_data(url)
 
@@ -298,6 +300,13 @@ class ClipUNL:
             Returns a dictonary, on which the keys are the available document
             types and the values are the count of those documents
             """
+
+            doctypes = self._doctypes
+            if doctypes is None:
+                doctypes = {}
+            else:
+                return doctypes
+
             data = urllib.urlencode({
                 PARAMS["cu_unit"].encode(ENCODING): self._id,
                 PARAMS["year"].encode(ENCODING): self._year,
@@ -312,7 +321,6 @@ class ClipUNL:
             doc_types_table = all_tables[3]
             anchors = doc_types_table.findAll("a")
 
-            doctypes = {}
 
             for anchor in anchors:
                 text = anchor.text
@@ -322,6 +330,7 @@ class ClipUNL:
                 doctype = _get_qs_param(url, PARAMS["doctype"])
                 doctypes[doctype] = int(number)
 
+            self._doctypes = doctypes
             return doctypes
 
         def _get_url_data(self, url):
