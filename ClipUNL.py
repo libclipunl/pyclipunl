@@ -230,7 +230,7 @@ class ClipUNL:
         class, or subject)
         """
         
-        _student = None
+        _person = None
         _url = None
         _name = None
         
@@ -242,8 +242,8 @@ class ClipUNL:
         _documents = {}
         _doctypes = None
 
-        def __init__(self, student, name, url):
-            self._student = student
+        def __init__(self, person, name, url):
+            self._person = person
             self._name = name
             self._url = url
 
@@ -257,18 +257,36 @@ class ClipUNL:
 
         def __unicode__(self):
             return "%s (%s)" % (self.get_name(), self.get_year())
+
+        def get_id(self):
+            """Returns the curricular unit's id"""
+            assert(isinstance(self._id, unicode))
+            return self._id
         
-        def get_student(self):
-            """Returns the student who attends this class"""
-            return self._student
+        def get_person(self):
+            """Returns the student (person) who attends this class"""
+            assert(isinstance(self._person, ClipUNL.Person))
+            return self._person
 
         def get_name(self):
             """Returns the curricular unit's name"""
+            assert(isinstance(self._name, unicode))
             return self._name
 
         def get_year(self):
             """Returns the curricular unit's year (as in, edition)"""
+            assert(isinstance(self._year, unicode))
             return self._year
+
+        def get_period(self):
+            """Returns the curricular unit's period code"""
+            assert(isinstance(self._period, unicode))
+            return self._period
+
+        def get_period_type(self):
+            """Returns the curricular unit's period type code"""
+            assert(isinstance(self._period_type, unicode))
+            return self._period_type
         
         def get_documents(self, doctype=None):
             """
@@ -308,11 +326,11 @@ class ClipUNL:
                 return doctypes
 
             data = urllib.urlencode({
-                PARAMS["cu_unit"].encode(ENCODING): self._id,
-                PARAMS["year"].encode(ENCODING): self._year,
-                PARAMS["period"].encode(ENCODING): self._period,
-                PARAMS["period_type"].encode(ENCODING): self._period_type,
-                PARAMS["student"].encode(ENCODING): self._student.get_id()
+                PARAMS["cu_unit"].encode(ENCODING): self.get_id(),
+                PARAMS["year"].encode(ENCODING): self.get_year(),
+                PARAMS["period"].encode(ENCODING): self.get_period(),
+                PARAMS["period_type"].encode(ENCODING): self.get_period_type(),
+                PARAMS["student"].encode(ENCODING): self.get_person().get_id()
             })
             url = DOCUMENTOS + "?" + data
             soup = _get_soup(url)
@@ -364,12 +382,12 @@ class ClipUNL:
                 docs = []
 
             data = urllib.urlencode({
-                PARAMS["cu_unit"].encode(ENCODING): self._id,
-                PARAMS["year"].encode(ENCODING): self._year,
-                PARAMS["period"].encode(ENCODING): self._period,
-                PARAMS["period_type"].encode(ENCODING): self._period_type,
+                PARAMS["cu_unit"].encode(ENCODING): self.get_id(),
+                PARAMS["year"].encode(ENCODING): self.get_year(),
+                PARAMS["period"].encode(ENCODING): self.get_period(),
+                PARAMS["period_type"].encode(ENCODING): self.get_period_type(),
                 PARAMS["doctype"].encode(ENCODING): doctype,
-                PARAMS["student"].encode(ENCODING): self._student.get_id()
+                PARAMS["student"].encode(ENCODING): self.get_person().get_id()
             })
             url = DOCUMENTOS + "?" + data
             soup = _get_soup(url)
@@ -584,6 +602,9 @@ class ClipUNL:
 
         There's only support for students at the moment.
         """
+        if not self.is_logged_in():
+            raise NotLoggedIn()
+
         if self._people is None:
             self._people = self._get_people()
 
