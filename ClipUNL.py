@@ -27,6 +27,8 @@ import urllib2
 import urlparse
 import cookielib
 
+VERSION = "0.0.2"
+
 SERVER = unicode("https://clip.unl.pt")
 LOGIN = unicode("/utente/eu")
 ALUNO = unicode("/utente/eu/aluno")
@@ -159,6 +161,7 @@ class ClipUNL:
         _c_unit = None
         _name = None
         _url = None
+        _doctype = None
         _date = None
         _size = None
         _teacher = None
@@ -243,6 +246,8 @@ class ClipUNL:
             self._name = name
             self._url = url
 
+            self._documents = {}
+
             self._get_url_data(url)
 
         def __str__(self):
@@ -263,7 +268,6 @@ class ClipUNL:
             """Returns the curricular unit's year (as in, edition)"""
             return self._year
         
-        # FIXME: Cache document requests
         def get_documents(self, doctype=None):
             """
             Returns the curricular unit's associated documents.
@@ -279,7 +283,8 @@ class ClipUNL:
                 doctypes = self.get_doctypes()
                 for (doctype_, count) in doctypes.iteritems():
                     if count > 0:
-                        ret = ret + self._get_documents(doctype_)
+                        cur = self._get_documents(doctype_)
+                        ret = ret + cur
 
             else:
                 if not doctype in DOC_TYPES.keys():
@@ -343,7 +348,11 @@ class ClipUNL:
             Retrieve documents of a specified doctype.
             Please don't use this method. Use get_documents() instead.
             """
-            docs = []
+            docs = self._documents.get(doctype)
+            if not docs is None:
+                return docs
+            else:
+                docs = []
 
             data = urllib.urlencode({
                 PARAMS["cu_unit"].encode(ENCODING): self._id,
@@ -369,11 +378,13 @@ class ClipUNL:
                     self,
                     all_td[0].text,
                     anchor["href"],
+                    doctype,
                     all_td[2].text,
                     all_td[3].text,
                     all_td[4].text
                 ))
 
+            self._documents[doctype] = docs
             return docs
            
     class Person:
