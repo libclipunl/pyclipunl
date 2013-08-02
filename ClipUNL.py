@@ -27,7 +27,7 @@ import urllib2
 import urlparse
 import cookielib
 
-VERSION = "0.0.3"
+VERSION = "0.0.4"
 
 SERVER = unicode("https://clip.unl.pt")
 OBJECTO = unicode("/objecto")
@@ -107,6 +107,17 @@ class InvalidDocumentType(ClipUNLException):
     def __str__(self):
         return repr(self.value)
 
+class NetworkError(ClipUNLException):
+    """
+    Raised when a network error.
+    """
+    def __init__(self, urlexcept):
+        ClipUNLException.__init__(self)
+        self.value = urlexcept
+
+    def __str__(self):
+        return str(self.value)
+
 def _get_soup(url, data=None):
     """
     Give an URL, we'll return you a soup
@@ -119,8 +130,12 @@ def _get_soup(url, data=None):
     data_ = None
     if data != None:
         data_ = urllib.urlencode(data)
+    
+    try:
+        html = urllib2.urlopen(SERVER + url, data_).read()
+    except urllib2.URLError as urlexcept:
+        raise NetworkError(urlexcept)
 
-    html = urllib2.urlopen(SERVER + url, data_).read()
     soup = BeautifulSoup(html, from_encoding = ENCODING)
 
     return soup
