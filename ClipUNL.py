@@ -27,9 +27,10 @@ import urllib2
 import urlparse
 import cookielib
 
-VERSION = "0.0.2"
+VERSION = "0.0.3"
 
 SERVER = unicode("https://clip.unl.pt")
+OBJECTO = unicode("/objecto")
 LOGIN = unicode("/utente/eu")
 ALUNO = unicode("/utente/eu/aluno")
 ANO_LECTIVO = ALUNO + unicode("/ano_lectivo")
@@ -158,6 +159,7 @@ class ClipUNL:
         """
         Describes a ClipUNL document.
         """
+        _oid = None
         _c_unit = None
         _name = None
         _url = None
@@ -168,14 +170,15 @@ class ClipUNL:
 
         def __init__(self, c_unit,
                 name, url, doctype, date, size, teacher):
-
+    
             self._c_unit = c_unit
             self._name = name
-            self._url = url
             self._doctype = doctype
             self._date = date
             self._size = size
             self._teacher = teacher
+
+            self._get_url_data(url)
 
         def __str__(self):
             return unicode(self)
@@ -197,7 +200,7 @@ class ClipUNL:
 
         def get_url(self):
             """Returns the document's url"""
-            return SERVER + self._url
+            return self._url
 
         def get_doctype(self):
             """Returns the document's doctype"""
@@ -223,6 +226,16 @@ class ClipUNL:
             Returns the creation date of the document
             """
             return self._date
+
+        def _get_url_data(self, url):
+            """
+            Extracts extra data contained in the url.
+            This method is called once on the object initializer,
+            and shouldn't be called.
+            """
+            oid = _get_qs_param(url, "oid")
+            self._url = "%s%s?oid=%s&oin=%s" % (SERVER, OBJECTO, oid, self.get_name())
+            self._oid = oid
 
     class CurricularUnit:
         """

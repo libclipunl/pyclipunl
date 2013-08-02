@@ -64,10 +64,13 @@ def main():
                             print "      [%s] (%d):" % (DOC_TYPES[doctype],
                                     count)
                             for doc in docs:
-                                print "        * %s" % (doc,)
+                                print "        *%s: %s" % (doc.get_name(), doc.get_url())
 
     else:
         print "You failed to login"
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
