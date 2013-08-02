@@ -198,6 +198,10 @@ class ClipUNL:
             """Returns the document's name"""
             return self._name
 
+        def get_oid(self):
+            """Returns the document's object ID"""
+            return self._oid
+
         def get_url(self):
             """Returns the document's url"""
             return self._url
@@ -234,7 +238,8 @@ class ClipUNL:
             and shouldn't be called.
             """
             oid = _get_qs_param(url, "oid")
-            self._url = "%s%s?oid=%s&oin=%s" % (SERVER, OBJECTO, oid, self.get_name())
+            self._url = "%s%s?oid=%s&oin=%s" % \
+                    (SERVER, OBJECTO, oid, self.get_name())
             self._oid = oid
 
     class CurricularUnit:
