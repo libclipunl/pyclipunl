@@ -238,8 +238,9 @@ class ClipUNL:
             and shouldn't be called.
             """
             oid = _get_qs_param(url, "oid")
+            quoted_name = urllib.quote(self.get_name().encode("utf-8"))
             self._url = "%s%s?oid=%s&oin=%s" % \
-                    (SERVER, OBJECTO, oid, self.get_name())
+                    (SERVER, OBJECTO, oid, quoted_name)
             self._oid = oid
 
     class CurricularUnit:
@@ -577,9 +578,11 @@ class ClipUNL:
     _people = None
 
     def __init__(self):
-        cjar = cookielib.CookieJar()
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cjar))
+        cookiejar = cookielib.CookieJar()
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookiejar))
         urllib2.install_opener(opener)
+
+        self._cookiejar = cookiejar
 
     def login(self, user, password):
         """
@@ -627,6 +630,12 @@ class ClipUNL:
             self._people = self._get_people()
 
         return self._people
+
+    def get_cookiejar(self):
+        """
+        Returns the cookie jar in use.
+        """
+        return self._cookiejar
 
     def _login(self, url, user, password):
         """
