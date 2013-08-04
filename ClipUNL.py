@@ -27,7 +27,7 @@ import urllib2
 import urlparse
 import cookielib
 
-VERSION = "0.0.4"
+VERSION = "0.0.5"
 
 SERVER = unicode("https://clip.unl.pt")
 OBJECTO = unicode("/objecto")
@@ -680,23 +680,22 @@ class ClipUNL:
         Returns a list of people represented by this user.
         Please don't use this method. Use get_people instead.
         """
-        soup = _get_soup(ALUNO)
+        soup = _get_soup(LOGIN)
        
         all_tables = soup.body.findAll("table", {"cellpadding": "3"})
-        if len(all_tables) != 1:
+        try:
+            aluno_table = [elem for elem in all_tables \
+                if unicode(elem.findAll("a")[0].text) == unicode("Aluno")][0]
+
+            anchors = aluno_table.findAll("a")[1:]
+            if len(anchors) <= 0:
+                raise PageChanged()
+
+            people = [self.Person(unicode(anchor["href"]),
+                unicode(anchor.text)) \
+                for anchor in anchors]
+
+            return people
+        except IndexError:
             raise PageChanged()
 
-        anchors = all_tables[0].findAll("a")
-
-        if len(anchors) <= 0:
-            raise PageChanged()
-        
-        people = []
-        for anchor in anchors:
-            href = unicode(anchor["href"])
-            text = unicode(anchor.text)
-
-            person = self.Person(href, text)
-            people.append(person)
-
-        return people
