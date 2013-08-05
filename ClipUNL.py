@@ -37,6 +37,7 @@ ANO_LECTIVO = ALUNO + unicode("/ano_lectivo")
 UNIDADES = ANO_LECTIVO + unicode("/unidades")
 DOCUMENTOS = UNIDADES + \
         unicode("/unidade_curricular/actividade/documentos")
+DL_IMAGE = unicode("/imagem/geral/download.gif")
 
 ENCODING = "iso-8859-1"
 
@@ -156,10 +157,8 @@ def _get_full_name(soup):
     this function returns False
     """
     all_strong = soup.findAll("strong")
-    if (len(all_strong) == 1):
-        return unicode(all_strong[0].text)
-    else:
-        return False
+    return unicode(all_strong[0].text) \
+            if (len(all_strong) == 1) else False
 
 class ClipUNL:
     """
@@ -332,20 +331,11 @@ class ClipUNL:
             
             An array of ClipUNL.ClipUNL.Document objects will be returned.
             """
-            ret = []
-            if doctype is None:
-                doctypes = self.get_doctypes()
-                for (doctype_, count) in doctypes.iteritems():
-                    if count > 0:
-                        cur = self._get_documents(doctype_)
-                        ret = ret + cur
-
-            else:
-                if not doctype in DOC_TYPES.keys():
-                    raise InvalidDocumentType(doctype)
-                ret = self._get_documents(doctype)
-            
-            return ret
+            return [self._get_documents(doctype_)
+                    for (doctype_, count)
+                    in self.get_doctypes.iteritems()
+                    if count > 0] if doctype is None else \
+                            self._get_documents(doctype)
 
         def get_doctypes(self):
             """
@@ -370,10 +360,11 @@ class ClipUNL:
             soup = _get_soup(url)
 
             all_tables = soup.findAll("table", {"cellpadding" : "3"})
+            
             doc_types_table = all_tables[3]
             anchors = doc_types_table.findAll("a")
 
-
+            # Leave it be, because the functional way would be messier...
             for anchor in anchors:
                 text = anchor.text
                 number = text[text.find("(")+1:text.find(")")]
@@ -426,24 +417,31 @@ class ClipUNL:
             url = DOCUMENTOS + "?" + data
             soup = _get_soup(url)
             
-            # FIXME: find better way to get all table rows
-            all_imgs = soup.findAll("img",
-                    {"src" : "/imagem/geral/download.gif"})
-            for img in all_imgs:
-                anchor = img.parent.parent
-
-                row = anchor.parent.parent
-                all_td = row.findAll("td")
-
-                docs.append(ClipUNL.Document(
+            # We get ourselves the table that suits our needs
+            file_table = soup.find_all("table", {"cellpadding" : "2",
+                "cellspacing" : "2", "border" : "0"})[0]
+            
+            # Then, get all its rows. Note that each row must have the
+            # download gif image
+            rows = [elem for elem in file_table.find_all("tr")
+                    if len(elem.find_all("img", {"src" : DL_IMAGE})) == 1]
+            
+            # Finally transform all those rows into Document objects 
+            docs = [ClipUNL.Document(
                     self,
                     all_td[0].text,
                     anchor["href"],
                     doctype,
                     all_td[2].text,
                     all_td[3].text,
-                    all_td[4].text
-                ))
+                    all_td[4].text)
+                    
+                    for all_td, anchor
+                    in [(row.find_all("td"), row.find_all("a")[0])
+                        for row in rows]]
+
+            # Gotta love list comprehensions
+            # What programming Scala can do to a sane man...
 
             self._documents[doctype] = docs
             return docs
@@ -542,14 +540,10 @@ class ClipUNL:
             all_anchors = uc_table.findAll("a")
             cus = []
 
-            for anchor in all_anchors:
-                cu_name = anchor.text
-
-                # Make sure it is a unicode type
-                href = unicode(anchor.get("href"))
-                
-                cus.append(ClipUNL.CurricularUnit(self,
-                    cu_name, href))
+            cus = [ClipUNL.CurricularUnit(self, cu_name, href)
+                    for (cu_name, href)
+                    in [(unicode(anchor.text), unicode(anchor["href"]))
+                        for anchor in all_anchors]]
 
             return cus
 
