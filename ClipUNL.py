@@ -156,7 +156,7 @@ def _get_full_name(soup):
     (and therefore impossible to get his/her name),
     this function returns False
     """
-    all_strong = soup.findAll("strong")
+    all_strong = soup.find_all("strong")
     return unicode(all_strong[0].text) \
             if (len(all_strong) == 1) else False
 
@@ -359,10 +359,10 @@ class ClipUNL:
             url = DOCUMENTOS + "?" + data
             soup = _get_soup(url)
 
-            all_tables = soup.findAll("table", {"cellpadding" : "3"})
+            all_tables = soup.find_all("table", {"cellpadding" : "3"})
             
             doc_types_table = all_tables[3]
-            anchors = doc_types_table.findAll("a")
+            anchors = doc_types_table.find_all("a")
 
             # Leave it be, because the functional way would be messier...
             for anchor in anchors:
@@ -534,10 +534,10 @@ class ClipUNL:
 
             soup = _get_soup(url)
 
-            all_tables = soup.findAll("table", {"cellpadding" : "3"})
+            all_tables = soup.find_all("table", {"cellpadding" : "3"})
             uc_table = all_tables[2]
 
-            all_anchors = uc_table.findAll("a")
+            all_anchors = uc_table.find_all("a")
 
             return [ClipUNL.CurricularUnit(self, cu_name, href)
                     for (cu_name, href)
@@ -674,12 +674,12 @@ class ClipUNL:
         """
         soup = _get_soup(LOGIN)
        
-        all_tables = soup.body.findAll("table", {"cellpadding": "3"})
+        all_tables = soup.body.find_all("table", {"cellpadding": "3"})
         try:
             aluno_table = [elem for elem in all_tables \
-                if unicode(elem.findAll("a")[0].text) == unicode("Aluno")][0]
+                if unicode(elem.find_all("a")[0].text) == unicode("Aluno")][0]
 
-            anchors = aluno_table.findAll("a")[1:]
+            anchors = aluno_table.find_all("a")[1:]
             if len(anchors) == 0:
                 raise PageChanged()
 
