@@ -538,14 +538,12 @@ class ClipUNL:
             uc_table = all_tables[2]
 
             all_anchors = uc_table.findAll("a")
-            cus = []
 
-            cus = [ClipUNL.CurricularUnit(self, cu_name, href)
+            return [ClipUNL.CurricularUnit(self, cu_name, href)
                     for (cu_name, href)
                     in [(unicode(anchor.text), unicode(anchor["href"]))
                         for anchor in all_anchors]]
 
-            return cus
 
         def _get_years(self):
             """
@@ -553,33 +551,33 @@ class ClipUNL:
             Please don't use this method. Use get_years instead.
             """
             data = urllib.urlencode({PARAMS["student"] : self._id})
-            url = ANO_LECTIVO + "?" + data
+            url = ALUNO + "?" + data
 
             soup = _get_soup(url)
 
-            all_tables = soup.findAll("table", {"cellpadding" : "3"})
-            years = {}
-            if len(all_tables) == 2:
-                # We got ourselves the list of all years
-                # (if there is more than one year)
-                years_table = all_tables[-1]
-                years_anchors = years_table.findAll("a")
-                for year in years_anchors:
-                    href = year["href"]
+            all_tables = soup.find_all("table", {"cellpadding" : "3"})
+            try:
+                year_table = [elem for elem in all_tables
+                        # using startswith because of the ortographic agreement...
+                        if elem.find_all("a")[0].text.startswith("Ano")][0]
+
+                anchors = year_table.find_all("a")[1:]
+                if len(anchors) == 0:
+                    raise PageChanged()
+
+                years = {}
+                for anchor in anchors:
+                    href = anchor["href"]
                     query = urlparse.urlparse(SERVER + href).query
                     params = urlparse.parse_qs(query)
-                    year = params["ano_lectivo"][0]
+                    year = params[PARAMS["year"]][0]
                     years[year] = []
 
-            else:
-                # There's only one year. Discover which year is it
-                years_table = all_tables[1]
-                years_anchors = years_table.findAll("a")
-                year_text = years_anchors[0].text
-                year = int(year_text.split("/")[0]) + 1
-                years = { unicode(year) : [] }
+                return years
 
-            return years
+
+            except IndexError:
+                raise PageChanged()
 
     _logged_in = None
     _full_name = None
@@ -682,14 +680,13 @@ class ClipUNL:
                 if unicode(elem.findAll("a")[0].text) == unicode("Aluno")][0]
 
             anchors = aluno_table.findAll("a")[1:]
-            if len(anchors) <= 0:
+            if len(anchors) == 0:
                 raise PageChanged()
 
-            people = [self.Person(unicode(anchor["href"]),
+            return [self.Person(unicode(anchor["href"]),
                 unicode(anchor.text)) \
                 for anchor in anchors]
 
-            return people
         except IndexError:
             raise PageChanged()
 
