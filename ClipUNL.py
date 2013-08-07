@@ -27,7 +27,7 @@ import urllib2
 import urlparse
 import cookielib
 
-VERSION = "0.0.5"
+VERSION = "0.0.7"
 
 SERVER = unicode("https://clip.unl.pt")
 OBJECTO = unicode("/objecto")
@@ -358,6 +358,8 @@ class ClipUNL:
             })
             url = DOCUMENTOS + "?" + data
             soup = _get_soup(url)
+            if soup.text == '':
+                return {}
 
             all_tables = soup.find_all("table", {"cellpadding" : "3"})
             
@@ -416,6 +418,8 @@ class ClipUNL:
             })
             url = DOCUMENTOS + "?" + data
             soup = _get_soup(url)
+            if soup.text == '':
+                return []
             
             # We get ourselves the table that suits our needs
             file_table = soup.find_all("table", {"cellpadding" : "2",
@@ -533,6 +537,8 @@ class ClipUNL:
             url = UNIDADES + "?" + data
 
             soup = _get_soup(url)
+            if soup.text == "":
+                return []
 
             all_tables = soup.find_all("table", {"cellpadding" : "3"})
             uc_table = all_tables[2]
@@ -554,6 +560,8 @@ class ClipUNL:
             url = ALUNO + "?" + data
 
             soup = _get_soup(url)
+            if soup.text == "":
+                return {}
 
             all_tables = soup.find_all("table", {"cellpadding" : "3"})
             try:
@@ -673,6 +681,8 @@ class ClipUNL:
         Please don't use this method. Use get_people instead.
         """
         soup = _get_soup(LOGIN)
+        if soup.text == '':
+            return []
        
         all_tables = soup.body.find_all("table", {"cellpadding": "3"})
         try:
